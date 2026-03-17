@@ -13,8 +13,21 @@ import { errorHandler } from "./middleware/errorHandler";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const LOCAL_ORIGIN_REGEX = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
 // Middleware
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:8080"], credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || LOCAL_ORIGIN_REGEX.test(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Routes

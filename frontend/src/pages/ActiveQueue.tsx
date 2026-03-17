@@ -21,15 +21,18 @@ import { AlertCircle, Clock, Filter, CheckCircle2, Building2, User, Tag, Calenda
 import { Input } from "@/components/ui/input";
 
 export default function ActiveQueue() {
+  const REMARKS_LIMIT = 1000;
   const queryClient = useQueryClient();
   const [filterBranch, setFilterBranch] = useState("all");
   const [resolveId, setResolveId] = useState<number | null>(null);
   const [remarks, setRemarks] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const { data: allOpen = [], isLoading } = useQuery({
-    queryKey: ["tickets", "open"],
-    queryFn: () => getTickets({ status: "open" }),
+    queryKey: ["tickets", "open", fromDate, toDate],
+    queryFn: () => getTickets({ status: "open", from_date: fromDate || undefined, to_date: toDate || undefined }),
   });
   const { data: branches = [] } = useQuery({ queryKey: ["branches"], queryFn: getBranches });
 
@@ -48,21 +51,6 @@ export default function ActiveQueue() {
     (t) => new Date(t.created_at).toDateString() === new Date().toDateString()
   ).length;
 
-  const getIssuePriority = (issueTypeName: string) => {
-    const name = issueTypeName.toLowerCase();
-    if (name.includes("security")) return "critical";
-    if (name.includes("hardware") || name.includes("network")) return "high";
-    if (name.includes("software") || name.includes("access")) return "medium";
-    return "low";
-  };
-
-  const priorityConfig = {
-    critical: { color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", dot: "bg-red-500", label: "Critical" },
-    high: { color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400", dot: "bg-orange-500", label: "High" },
-    medium: { color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", dot: "bg-blue-500", label: "Medium" },
-    low: { color: "bg-muted text-muted-foreground", dot: "bg-muted-foreground", label: "Low" },
-  };
-
   const resolveMutation = useMutation({
     mutationFn: ({ id, remarks }: { id: number; remarks: string }) => resolveTicketApi(id, remarks),
     onSuccess: () => {
@@ -75,7 +63,7 @@ export default function ActiveQueue() {
   });
 
   const handleResolve = () => {
-    if (resolveId && remarks.trim()) {
+    if (resolveId && remarks.trim() && remarks.trim().length <= REMARKS_LIMIT) {
       resolveMutation.mutate({ id: resolveId, remarks });
     }
   };
@@ -175,6 +163,8 @@ export default function ActiveQueue() {
                     className="pl-9"
                   />
                 </div>
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full sm:w-[180px]" />
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full sm:w-[180px]" />
               </div>
             </div>
           </CardContent>
@@ -192,7 +182,6 @@ export default function ActiveQueue() {
                   <TableHead className="font-semibold">Employee</TableHead>
                   <TableHead className="font-semibold">Branch</TableHead>
                   <TableHead className="font-semibold">Issue Type</TableHead>
-                  <TableHead className="font-semibold">Priority</TableHead>
                   <TableHead className="font-semibold">Submitted</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
                 </TableRow>
@@ -200,7 +189,7 @@ export default function ActiveQueue() {
               <TableBody>
                 {openTickets.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-16">
+                    <TableCell colSpan={6} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
                           <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
@@ -214,8 +203,6 @@ export default function ActiveQueue() {
                   </TableRow>
                 ) : (
                   openTickets.map((t, i) => {
-                    const priority = getIssuePriority(t.issue_type_name);
-                    const config = priorityConfig[priority];
                     return (
                       <motion.tr
                         key={t.id}
@@ -249,12 +236,6 @@ export default function ActiveQueue() {
                             <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                             <span>{t.issue_type_name}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
-                            {config.label}
-                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
@@ -350,16 +331,19 @@ export default function ActiveQueue() {
                   placeholder="Describe the resolution steps taken..."
                   rows={4}
                   className="resize-none"
+                  maxLength={REMARKS_LIMIT}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {remarks.trim().length === 0 ? "Required — describe how this issue was resolved" : `${remarks.trim().length} characters`}
+                  {remarks.trim().length === 0
+                    ? "Required — describe how this issue was resolved"
+                    : `${remarks.length}/${REMARKS_LIMIT} characters`}
                 </p>
               </div>
             </div>
           )}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setResolveId(null)}>Cancel</Button>
-            <Button onClick={handleResolve} disabled={!remarks.trim() || resolveMutation.isLoading}>
+            <Button onClick={handleResolve} disabled={!remarks.trim() || remarks.trim().length > REMARKS_LIMIT || resolveMutation.isLoading}>
               <CheckCircle2 className="h-4 w-4 mr-1" />
               Mark as Resolved
             </Button>

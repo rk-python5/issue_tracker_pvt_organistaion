@@ -14,6 +14,7 @@ import ActiveQueue from "./pages/ActiveQueue";
 import ResolvedTickets from "./pages/ResolvedTickets";
 import ManageBranches from "./pages/ManageBranches";
 import ManageIssueTypes from "./pages/ManageIssueTypes";
+import EmployeeManagement from "./pages/EmployeeManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/my-closed-tickets" element={<DashboardLayout><ProtectedRoute allowedRoles={["employee"]}><MyClosedTickets /></ProtectedRoute></DashboardLayout>} />
             <Route path="/active-queue" element={<DashboardLayout><ProtectedRoute allowedRoles={["supervisor"]}><ActiveQueue /></ProtectedRoute></DashboardLayout>} />
             <Route path="/resolved-tickets" element={<DashboardLayout><ProtectedRoute allowedRoles={["supervisor"]}><ResolvedTickets /></ProtectedRoute></DashboardLayout>} />
+            <Route path="/employee-management" element={<DashboardLayout><ProtectedRoute allowedRoles={["admin"]}><EmployeeManagement /></ProtectedRoute></DashboardLayout>} />
             <Route path="/manage-branches" element={<DashboardLayout><ProtectedRoute allowedRoles={["admin"]}><ManageBranches /></ProtectedRoute></DashboardLayout>} />
             <Route path="/manage-issue-types" element={<DashboardLayout><ProtectedRoute allowedRoles={["admin"]}><ManageIssueTypes /></ProtectedRoute></DashboardLayout>} />
             <Route path="*" element={<NotFound />} />

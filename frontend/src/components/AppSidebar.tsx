@@ -8,7 +8,8 @@ import {
   ListTodo,
   CheckCheck,
   Building2,
-  Tags } from
+  Tags,
+  Users } from
 "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,7 @@ const navConfig = {
   { title: "Resolved Tickets", url: "/resolved-tickets", icon: CheckCheck }],
 
   admin: [
+  { title: "Employee Management", url: "/employee-management", icon: Users },
   { title: "Manage Branches", url: "/manage-branches", icon: Building2 },
   { title: "Manage Issue Types", url: "/manage-issue-types", icon: Tags }]
 

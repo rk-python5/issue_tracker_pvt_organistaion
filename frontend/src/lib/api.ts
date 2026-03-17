@@ -39,6 +39,44 @@ export function loginApi(username: string, password: string) {
   });
 }
 
+export interface ManagedUserRow {
+  id: number;
+  username: string;
+  displayName: string;
+  role: "employee" | "supervisor";
+  isActive: boolean;
+  createdAt: string;
+}
+
+export function getManagedUsersApi() {
+  return request<ManagedUserRow[]>("/auth/users");
+}
+
+export function createManagedUserApi(data: {
+  username: string;
+  displayName: string;
+  password: string;
+  role: "employee" | "supervisor";
+}) {
+  return request<ManagedUserRow>("/auth/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function toggleManagedUserApi(id: number) {
+  return request<ManagedUserRow>(`/auth/users/${id}/toggle-active`, {
+    method: "PATCH",
+  });
+}
+
+export function resetManagedUserPasswordApi(id: number, password: string) {
+  return request<{ message: string }>(`/auth/users/${id}/reset-password`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+}
+
 // ─── Tickets ───
 export interface TicketRow {
   id: number;
@@ -56,10 +94,12 @@ export interface TicketRow {
   resolved_by: string | null;
 }
 
-export function getTickets(params?: { status?: string; branch_id?: number }) {
+export function getTickets(params?: { status?: string; branch_id?: number; from_date?: string; to_date?: string }) {
   const qs = new URLSearchParams();
   if (params?.status) qs.set("status", params.status);
   if (params?.branch_id) qs.set("branch_id", String(params.branch_id));
+  if (params?.from_date) qs.set("from_date", params.from_date);
+  if (params?.to_date) qs.set("to_date", params.to_date);
   const query = qs.toString();
   return request<TicketRow[]>(`/tickets${query ? `?${query}` : ""}`);
 }

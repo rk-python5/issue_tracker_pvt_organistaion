@@ -4,9 +4,15 @@ import pool from "../db/pool";
 export async function createTicket(req: Request, res: Response): Promise<void> {
   const { branch_id, issue_type_id, description } = req.body;
   const employeeId = req.user!.id;
+  const descriptionText = String(description ?? "").trim();
 
-  if (!branch_id || !issue_type_id || !description?.trim()) {
+  if (!branch_id || !issue_type_id || !descriptionText) {
     res.status(400).json({ error: "branch_id, issue_type_id, and description are required" });
+    return;
+  }
+
+  if (descriptionText.length > 1000) {
+    res.status(400).json({ error: "Description must be 1000 characters or fewer" });
     return;
   }
 
@@ -29,7 +35,7 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
       `INSERT INTO tickets (employee_id, branch_id, issue_type_id, description)
        VALUES ($1, $2, $3, $4)
        RETURNING id, employee_id, branch_id, issue_type_id, description, status, created_at`,
-      [employeeId, branch_id, issue_type_id, description.trim()]
+      [employeeId, branch_id, issue_type_id, descriptionText]
     );
 
     res.status(201).json(result.rows[0]);
@@ -41,7 +47,7 @@ export async function createTicket(req: Request, res: Response): Promise<void> {
 
 export async function getTickets(req: Request, res: Response): Promise<void> {
   const user = req.user!;
-  const { status, branch_id } = req.query;
+  const { status, branch_id, from_date, to_date } = req.query;
 
   try {
     let query = `
@@ -81,6 +87,32 @@ export async function getTickets(req: Request, res: Response): Promise<void> {
       params.push(Number(branch_id));
     }
 
+    const fromDateValue = typeof from_date === "string" ? from_date : "";
+    const toDateValue = typeof to_date === "string" ? to_date : "";
+    const dateFormat = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (fromDateValue && !dateFormat.test(fromDateValue)) {
+      res.status(400).json({ error: "from_date must be in YYYY-MM-DD format" });
+      return;
+    }
+
+    if (toDateValue && !dateFormat.test(toDateValue)) {
+      res.status(400).json({ error: "to_date must be in YYYY-MM-DD format" });
+      return;
+    }
+
+    const dateField = status === "closed" ? "r.resolved_at" : "t.created_at";
+
+    if (fromDateValue) {
+      query += ` AND ${dateField} >= $${paramIdx++}::date`;
+      params.push(fromDateValue);
+    }
+
+    if (toDateValue) {
+      query += ` AND ${dateField} < ($${paramIdx++}::date + INTERVAL '1 day')`;
+      params.push(toDateValue);
+    }
+
     query += " ORDER BY t.created_at DESC";
 
     const result = await pool.query(query, params);
@@ -95,9 +127,15 @@ export async function resolveTicket(req: Request, res: Response): Promise<void> 
   const ticketId = Number(req.params.id);
   const supervisorId = req.user!.id;
   const { remarks } = req.body;
+  const remarksText = String(remarks ?? "").trim();
 
-  if (!remarks?.trim()) {
+  if (!remarksText) {
     res.status(400).json({ error: "Resolution remarks are required" });
+    return;
+  }
+
+  if (remarksText.length > 1000) {
+    res.status(400).json({ error: "Resolution remarks must be 1000 characters or fewer" });
     return;
   }
 
@@ -130,7 +168,7 @@ export async function resolveTicket(req: Request, res: Response): Promise<void> 
     await client.query(
       `INSERT INTO resolutions (ticket_id, supervisor_id, remarks)
        VALUES ($1, $2, $3)`,
-      [ticketId, supervisorId, remarks.trim()]
+      [ticketId, supervisorId, remarksText]
     );
 
     await client.query("COMMIT");

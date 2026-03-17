@@ -20,8 +20,6 @@ export function AppHeader() {
     .join("")
     .toUpperCase() || "?";
 
-  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) + " View" : "";
-
   return (
     <header className="h-14 flex items-center justify-between border-b bg-card px-4 shadow-card">
       <div className="flex items-center gap-3">
@@ -29,7 +27,6 @@ export function AppHeader() {
         <span className="text-sm font-semibold text-foreground">Issue Tracker</span>
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-xs text-muted-foreground hidden sm:inline">{roleLabel}</span>
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTickets } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -9,9 +9,11 @@ import { CheckCircle2, ChevronDown, ChevronRight, User, Building2, Tag, Calendar
 import { Input } from "@/components/ui/input";
 
 export default function ResolvedTickets() {
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const { data: closed = [], isLoading } = useQuery({
-    queryKey: ["tickets", "closed"],
-    queryFn: () => getTickets({ status: "closed" }),
+    queryKey: ["tickets", "closed", fromDate, toDate],
+    queryFn: () => getTickets({ status: "closed", from_date: fromDate || undefined, to_date: toDate || undefined }),
   });
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -98,14 +100,18 @@ export default function ResolvedTickets() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <Card className="shadow-card">
           <CardContent className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by ticket ID, employee, or remarks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by ticket ID, employee, or remarks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full sm:w-[180px]" />
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full sm:w-[180px]" />
             </div>
           </CardContent>
         </Card>
@@ -145,13 +151,11 @@ export default function ResolvedTickets() {
                   </TableRow>
                 ) : (
                   filtered.map((t, i) => (
-                    <motion.tbody
-                      key={t.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                    >
-                      <tr
+                    <Fragment key={t.id}>
+                      <motion.tr
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.03 }}
                         className="border-b transition-colors hover:bg-muted/50 cursor-pointer group"
                         onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
                       >
@@ -194,7 +198,7 @@ export default function ResolvedTickets() {
                           </span>
                         </TableCell>
                         <TableCell><StatusBadge variant="closed" /></TableCell>
-                      </tr>
+                      </motion.tr>
                       <AnimatePresence>
                         {expandedId === t.id && (
                           <motion.tr
@@ -203,7 +207,7 @@ export default function ResolvedTickets() {
                             exit={{ opacity: 0, height: 0 }}
                             className="bg-muted/30"
                           >
-                            <td colSpan={8} className="p-0">
+                            <TableCell colSpan={8} className="p-0">
                               <div className="px-6 py-4 space-y-3">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <div className="rounded-lg border bg-card p-4">
@@ -224,11 +228,11 @@ export default function ResolvedTickets() {
                                   </div>
                                 </div>
                               </div>
-                            </td>
+                            </TableCell>
                           </motion.tr>
                         )}
                       </AnimatePresence>
-                    </motion.tbody>
+                    </Fragment>
                   ))
                 )}
               </TableBody>

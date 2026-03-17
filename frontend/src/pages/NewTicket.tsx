@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export default function NewTicket() {
+  const DESCRIPTION_LIMIT = 1000;
   const queryClient = useQueryClient();
   const [branchId, setBranchId] = useState("");
   const [issueTypeId, setIssueTypeId] = useState("");
@@ -39,6 +40,12 @@ export default function NewTicket() {
       toast.error("Please fill in all fields.");
       return;
     }
+
+    if (description.trim().length > DESCRIPTION_LIMIT) {
+      toast.error(`Description must be ${DESCRIPTION_LIMIT} characters or fewer.`);
+      return;
+    }
+
     mutation.mutate({ branch_id: Number(branchId), issue_type_id: Number(issueTypeId), description });
   };
 
@@ -85,7 +92,11 @@ export default function NewTicket() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe your issue in detail..."
                 rows={5}
+                maxLength={DESCRIPTION_LIMIT}
               />
+              <p className="text-xs text-muted-foreground">
+                {description.length}/{DESCRIPTION_LIMIT} characters
+              </p>
             </div>
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
